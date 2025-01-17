@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "423409736409",
+    "project_id": "pure-noise-db",
+    "storage_bucket": "pure-noise-db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:423409736409:android:6f5c62619b5548d16efcc8",
+        "android_client_info": {
+          "package_name": "com.example.pure_noise_test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNaVgoWo1KfIcTe1BsXOyXZ-Avz9_VKw8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

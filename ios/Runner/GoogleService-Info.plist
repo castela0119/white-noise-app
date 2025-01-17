@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyDcxeDXYfO_gmPMLaFEZdNHRyFF_tW3rlU</string>
+	<key>GCM_SENDER_ID</key>
+	<string>423409736409</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.pureNoiseTest</string>
+	<key>PROJECT_ID</key>
+	<string>pure-noise-db</string>
+	<key>STORAGE_BUCKET</key>
+	<string>pure-noise-db.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:423409736409:ios:c45ff6fe02709dc56efcc8</string>
+</dict>
+</plist>
