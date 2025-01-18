@@ -40,7 +40,7 @@ class AudioManager {
 
   Future<void> stop() async {
     await _player.stop();
-    _currentUrl = null;
+    // _currentUrl은 초기화하지 않음
   }
 
   String? get currentUrl => _currentUrl; // 현재 재생 중인 URL 반환
@@ -181,7 +181,7 @@ class MusicControlBar extends StatelessWidget {
               // 현재 재생 곡 정보
               Expanded(
                 child: Text(
-                  currentUrl != null ? _getTitleFromPath(currentUrl) : 'No song playing',
+                  currentUrl != null ? _getTitleFromPath(currentUrl) : 'No song selected',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
