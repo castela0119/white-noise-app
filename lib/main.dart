@@ -216,50 +216,106 @@ class MusicControlBar extends StatelessWidget {
   }
 
   void _showTimerDialog(BuildContext context, AudioManager audioManager) {
+    int selectedHours = 0;
+    int selectedMinutes = 5;
+
     showDialog(
       context: context,
       builder: (context) {
-        int selectedMinutes = 5; // 기본 타이머 시간
-
-        return AlertDialog(
-          title: const Text('Set Timer'),
-          content: DropdownButton<int>(
-            value: selectedMinutes,
-            items: [5, 10, 15, 20, 30].map((int value) {
-              return DropdownMenuItem<int>(
-                value: value,
-                child: Text('$value minutes'),
-              );
-            }).toList(),
-            onChanged: (value) {
-              selectedMinutes = value!;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _startTimer(audioManager, selectedMinutes);
-              },
-              child: const Text('Set'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Set Timer'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Hours:'),
+                      DropdownButton<int>(
+                        value: selectedHours,
+                        items: List.generate(13, (index) => index).map((int value) {
+                          return DropdownMenuItem<int>(
+                            value: value,
+                            child: Text('$value'),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedHours = value!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Minutes:'),
+                      DropdownButton<int>(
+                        value: selectedMinutes,
+                        items: List.generate(60, (index) => index).map((int value) {
+                          return DropdownMenuItem<int>(
+                            value: value,
+                            child: Text('$value'),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedMinutes = value!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _startTimer(audioManager, selectedHours, selectedMinutes);
+                  },
+                  child: const Text('Set'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  void _startTimer(AudioManager audioManager, int minutes) {
-    Future.delayed(Duration(minutes: minutes), () async {
-      if (audioManager.player.playing) {
-        await audioManager.player.stop();
+  void _startTimer(AudioManager audioManager, int hours, int minutes) {
+    final totalDuration = Duration(hours: hours, minutes: minutes);
+    final loopDuration = audioManager.player.duration ?? const Duration();
+
+    Duration remainingTime = totalDuration;
+
+    Future.doWhile(() async {
+      if (remainingTime <= Duration.zero) {
+        await audioManager.stop();
+        return false;
       }
+
+      final currentDuration = loopDuration - audioManager.player.position;
+      final waitDuration = currentDuration <= remainingTime ? currentDuration : remainingTime;
+
+      await Future.delayed(waitDuration);
+      remainingTime -= waitDuration;
+
+      if (remainingTime > Duration.zero && currentDuration <= remainingTime) {
+        await audioManager.playAsset(audioManager.currentUrl!);
+      }
+
+      return true;
     });
   }
 }
