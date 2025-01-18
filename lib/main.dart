@@ -158,10 +158,18 @@ class MusicItem extends StatelessWidget {
   }
 }
 
-class MusicControlBar extends StatelessWidget {
+class MusicControlBar extends StatefulWidget {
   final AudioManager audioManager;
 
   const MusicControlBar({super.key, required this.audioManager});
+
+  @override
+  State<MusicControlBar> createState() => _MusicControlBarState();
+}
+
+class _MusicControlBarState extends State<MusicControlBar> {
+  int previouslySetHours = 0; // 이전에 설정된 시간
+  int previouslySetMinutes = 5; // 이전에 설정된 분
 
   @override
   Widget build(BuildContext context) {
@@ -169,11 +177,11 @@ class MusicControlBar extends StatelessWidget {
       color: Colors.grey[200],
       padding: const EdgeInsets.all(8.0),
       child: StreamBuilder<PlayerState>(
-        stream: audioManager.player.playerStateStream,
+        stream: widget.audioManager.player.playerStateStream,
         builder: (context, snapshot) {
           final playerState = snapshot.data;
           final isPlaying = playerState?.playing ?? false;
-          final currentUrl = audioManager.currentUrl;
+          final currentUrl = widget.audioManager.currentUrl;
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -191,17 +199,18 @@ class MusicControlBar extends StatelessWidget {
                 icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
                 onPressed: () async {
                   if (isPlaying) {
-                    await audioManager.player.pause();
+                    await widget.audioManager.player.pause();
                   } else {
-                    await audioManager.player.play();
+                    await widget.audioManager.player.play();
                   }
                 },
               ),
               // 타이머 버튼
+              // 호출 시 기존 설정된 시간을 전달
               IconButton(
                 icon: const Icon(Icons.timer),
                 onPressed: () {
-                  _showTimerDialog(context, audioManager);
+                  _showTimerDialog(context, widget.audioManager, initialHours: previouslySetHours, initialMinutes: previouslySetMinutes);
                 },
               ),
             ],
@@ -215,9 +224,9 @@ class MusicControlBar extends StatelessWidget {
     return path.split('/').last.replaceAll('_', ' ').replaceAll('.mp3', '');
   }
 
-  void _showTimerDialog(BuildContext context, AudioManager audioManager) {
-    int selectedHours = 0;
-    int selectedMinutes = 5;
+  void _showTimerDialog(BuildContext context, AudioManager audioManager, {int initialHours = 0, int initialMinutes = 5}) {
+    int selectedHours = initialHours; // 초기 시간 값을 매개변수로 받음
+    int selectedMinutes = initialMinutes;
 
     showDialog(
       context: context,
@@ -234,7 +243,7 @@ class MusicControlBar extends StatelessWidget {
                     children: [
                       const Text('Hours:'),
                       DropdownButton<int>(
-                        value: selectedHours,
+                        value: selectedHours, // 선택된 시간 표시
                         items: List.generate(13, (index) => index).map((int value) {
                           return DropdownMenuItem<int>(
                             value: value,
@@ -254,7 +263,7 @@ class MusicControlBar extends StatelessWidget {
                     children: [
                       const Text('Minutes:'),
                       DropdownButton<int>(
-                        value: selectedMinutes,
+                        value: selectedMinutes, // 선택된 분 표시
                         items: List.generate(60, (index) => index).map((int value) {
                           return DropdownMenuItem<int>(
                             value: value,
@@ -281,6 +290,13 @@ class MusicControlBar extends StatelessWidget {
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
+
+                    // 이전에 설정한 값을 저장
+                    setState(() {
+                      previouslySetHours = selectedHours;
+                      previouslySetMinutes = selectedMinutes;
+                    });
+
                     _startTimer(audioManager, selectedHours, selectedMinutes);
                   },
                   child: const Text('Set'),
@@ -295,7 +311,12 @@ class MusicControlBar extends StatelessWidget {
 
   void _startTimer(AudioManager audioManager, int hours, int minutes) {
     final totalDuration = Duration(hours: hours, minutes: minutes);
-    final loopDuration = audioManager.player.duration ?? const Duration();
+    final loopDuration = audioManager.player.duration;
+
+    // Null 검사 추가
+    if (loopDuration == null || audioManager.currentUrl == null) {
+      return; // 타이머를 실행하지 않고 종료
+    }
 
     Duration remainingTime = totalDuration;
 
@@ -305,14 +326,17 @@ class MusicControlBar extends StatelessWidget {
         return false;
       }
 
-      final currentDuration = loopDuration - audioManager.player.position;
+      final currentDuration = loopDuration - (audioManager.player.position ?? Duration.zero);
       final waitDuration = currentDuration <= remainingTime ? currentDuration : remainingTime;
 
       await Future.delayed(waitDuration);
       remainingTime -= waitDuration;
 
       if (remainingTime > Duration.zero && currentDuration <= remainingTime) {
-        await audioManager.playAsset(audioManager.currentUrl!);
+        // Null 검사 추가
+        if (audioManager.currentUrl != null) {
+          await audioManager.playAsset(audioManager.currentUrl!);
+        }
       }
 
       return true;
