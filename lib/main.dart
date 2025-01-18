@@ -47,8 +47,17 @@ class AudioManager {
 }
 
 // 음악 플레이어 화면
-class MusicPlayerScreen extends StatelessWidget {
+class MusicPlayerScreen extends StatefulWidget {
   const MusicPlayerScreen({super.key});
+
+  @override
+  State<MusicPlayerScreen> createState() => _MusicPlayerScreenState();
+}
+
+class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
+  int previouslySetHours = 0; // 부모가 관리하는 타이머 시간 (시간)
+  int previouslySetMinutes = 5; // 부모가 관리하는 타이머 시간 (분)
+  String displayedTimer = "No timer set"; // 화면에 표시될 타이머 상태
 
   @override
   Widget build(BuildContext context) {
@@ -110,12 +119,25 @@ class MusicPlayerScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: MusicControlBar(audioManager: audioManager),
+      bottomNavigationBar: MusicControlBar(
+        audioManager: audioManager,
+        initialHours: previouslySetHours,
+        initialMinutes: previouslySetMinutes,
+        displayedTimer: displayedTimer,
+        onTimerSet: (int hours, int minutes) {
+          // 부모 상태 업데이트
+          setState(() {
+            previouslySetHours = hours;
+            previouslySetMinutes = minutes;
+            displayedTimer = "${hours}h ${minutes}m";
+          });
+        },
+      ),
     );
   }
 }
 
-class MusicItem extends StatelessWidget {
+class MusicItem extends StatefulWidget {
   final String title;
   final String assetPath;
   final AudioManager audioManager;
@@ -128,27 +150,32 @@ class MusicItem extends StatelessWidget {
   });
 
   @override
+  State<MusicItem> createState() => _MusicItemState();
+}
+
+class _MusicItemState extends State<MusicItem> {
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<PlayerState>(
-      stream: audioManager.player.playerStateStream,
+      stream: widget.audioManager.player.playerStateStream,
       builder: (context, snapshot) {
         final playerState = snapshot.data;
 
         // 현재 곡이 재생 중인지 판별
         final isPlaying =
-            audioManager.currentUrl == assetPath && playerState?.playing == true;
+            widget.audioManager.currentUrl == widget.assetPath && playerState?.playing == true;
 
         return ListTile(
           leading: const Icon(Icons.music_note, color: Colors.blue),
-          title: Text(title),
+          title: Text(widget.title),
           trailing: IconButton(
             icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
             onPressed: () async {
               if (isPlaying) {
-                await audioManager.stop(); // 현재 재생 중인 곡 멈춤
+                await widget.audioManager.stop(); // 현재 재생 중인 곡 멈춤
               } else {
-                await audioManager.stop(); // 기존 곡 멈춤
-                await audioManager.playAsset(assetPath); // Asset 파일 재생
+                await widget.audioManager.stop(); // 기존 곡 멈춤
+                await widget.audioManager.playAsset(widget.assetPath); // Asset 파일 재생
               }
             },
           ),
@@ -160,8 +187,19 @@ class MusicItem extends StatelessWidget {
 
 class MusicControlBar extends StatefulWidget {
   final AudioManager audioManager;
+  final int initialHours; // 추가: 초기 시간
+  final int initialMinutes; // 추가: 초기 분
+  final String displayedTimer; // 추가: 표시할 타이머 문자열
+  final Function(int hours, int minutes) onTimerSet; // 추가: 상태 업데이트 콜백
 
-  const MusicControlBar({super.key, required this.audioManager});
+  const MusicControlBar({
+    super.key,
+    required this.audioManager,
+    required this.initialHours,
+    required this.initialMinutes,
+    required this.displayedTimer,
+    required this.onTimerSet,
+  });
 
   @override
   State<MusicControlBar> createState() => _MusicControlBarState();
@@ -174,18 +212,16 @@ class _MusicControlBarState extends State<MusicControlBar> {
 
   @override
   void initState() {
-    super.initState(); // 부모 클래스의 initState 호출
+    super.initState();
     displayedTimer = "No timer set"; // 초기 상태 설정
   }
 
   @override
   Widget build(BuildContext context) {
-
     print("build() 호출됨: Timer - $displayedTimer");
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 타이머 표시
         if (displayedTimer.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -225,7 +261,6 @@ class _MusicControlBarState extends State<MusicControlBar> {
                       if (isPlaying) {
                         await widget.audioManager.player.pause(); // 재생 중인 곡을 일시정지
                       } else {
-                        // currentUrl이 없을 경우 첫 번째 곡 재생
                         if (widget.audioManager.currentUrl == null) {
                           await widget.audioManager.playAsset('asset/sounds/rain_for_sleep_10min.mp3');
                         } else {
@@ -235,12 +270,24 @@ class _MusicControlBarState extends State<MusicControlBar> {
                       setState(() {}); // 상태 갱신
                     },
                   ),
+
                   // 타이머 버튼
-                  // 호출 시 기존 설정된 시간을 전달
                   IconButton(
                     icon: const Icon(Icons.timer),
                     onPressed: () {
-                      _showTimerDialog(context, widget.audioManager, initialHours: previouslySetHours, initialMinutes: previouslySetMinutes);
+                      _showTimerDialog(
+                        context,
+                        widget.audioManager,
+                        initialHours: previouslySetHours,
+                        initialMinutes: previouslySetMinutes,
+                        onTimerSet: (hours, minutes) {
+                          setState(() {
+                            previouslySetHours = hours;
+                            previouslySetMinutes = minutes;
+                            displayedTimer = "${hours}h ${minutes}m";
+                          });
+                        },
+                      );
                     },
                   ),
                 ],
@@ -256,79 +303,81 @@ class _MusicControlBarState extends State<MusicControlBar> {
     return path.split('/').last.replaceAll('_', ' ').replaceAll('.mp3', '');
   }
 
-  void _showTimerDialog(BuildContext context, AudioManager audioManager, {int initialHours = 0, int initialMinutes = 5}) {
+  void _showTimerDialog(BuildContext context, AudioManager audioManager,
+      {required int initialHours, required int initialMinutes, required Function(int, int) onTimerSet}) {
     int selectedHours = initialHours;
     int selectedMinutes = initialMinutes;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Set Timer'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Set Timer'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Hours:'),
-                  DropdownButton<int>(
-                    value: selectedHours,
-                    items: List.generate(13, (index) => index)
-                        .map((int value) => DropdownMenuItem<int>(
-                      value: value,
-                      child: Text('$value'),
-                    ))
-                        .toList(),
-                    onChanged: (value) {
-                      selectedHours = value!;
-                    },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Hours:'),
+                      DropdownButton<int>(
+                        value: selectedHours,
+                        items: List.generate(13, (index) => index)
+                            .map((int value) => DropdownMenuItem<int>(
+                          value: value,
+                          child: Text('$value'),
+                        ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedHours = value!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Minutes:'),
+                      DropdownButton<int>(
+                        value: selectedMinutes,
+                        items: List.generate(60, (index) => index)
+                            .map((int value) => DropdownMenuItem<int>(
+                          value: value,
+                          child: Text('$value'),
+                        ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedMinutes = value!;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Minutes:'),
-                  DropdownButton<int>(
-                    value: selectedMinutes,
-                    items: List.generate(60, (index) => index)
-                        .map((int value) => DropdownMenuItem<int>(
-                      value: value,
-                      child: Text('$value'),
-                    ))
-                        .toList(),
-                    onChanged: (value) {
-                      selectedMinutes = value!;
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                // 부모 상태 업데이트
-                setState(() {
-                  previouslySetHours = selectedHours;
-                  previouslySetMinutes = selectedMinutes;
-                  displayedTimer = "${selectedHours}h ${selectedMinutes}m";
-                });
-
-                Navigator.of(context).pop();
-
-                print("Selected Timer: $displayedTimer");
-              },
-              child: const Text('Set'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // 부모 콜백 함수 호출
+                    onTimerSet(selectedHours, selectedMinutes);
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Set'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
