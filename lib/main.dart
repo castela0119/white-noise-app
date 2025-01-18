@@ -171,52 +171,68 @@ class _MusicControlBarState extends State<MusicControlBar> {
   int previouslySetHours = 0; // 이전에 설정된 시간
   int previouslySetMinutes = 5; // 이전에 설정된 분
 
+  String displayedTimer = "No timer set"; // 초기값
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.grey[200],
-      padding: const EdgeInsets.all(8.0),
-      child: StreamBuilder<PlayerState>(
-        stream: widget.audioManager.player.playerStateStream,
-        builder: (context, snapshot) {
-          final playerState = snapshot.data;
-          final isPlaying = playerState?.playing ?? false;
-          final currentUrl = widget.audioManager.currentUrl;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 타이머 표시
+        if (displayedTimer.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              "Timer: $displayedTimer",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        Container(
+          color: Colors.grey[200],
+          padding: const EdgeInsets.all(8.0),
+          child: StreamBuilder<PlayerState>(
+            stream: widget.audioManager.player.playerStateStream,
+            builder: (context, snapshot) {
+              final playerState = snapshot.data;
+              final isPlaying = playerState?.playing ?? false;
+              final currentUrl = widget.audioManager.currentUrl;
 
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // 현재 재생 곡 정보
-              Expanded(
-                child: Text(
-                  currentUrl != null ? _getTitleFromPath(currentUrl) : 'No song selected',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // 재생/일시정지 버튼
-              IconButton(
-                icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
-                onPressed: () async {
-                  if (isPlaying) {
-                    await widget.audioManager.player.pause();
-                  } else {
-                    await widget.audioManager.player.play();
-                  }
-                },
-              ),
-              // 타이머 버튼
-              // 호출 시 기존 설정된 시간을 전달
-              IconButton(
-                icon: const Icon(Icons.timer),
-                onPressed: () {
-                  _showTimerDialog(context, widget.audioManager, initialHours: previouslySetHours, initialMinutes: previouslySetMinutes);
-                },
-              ),
-            ],
-          );
-        },
-      ),
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // 현재 재생 곡 정보
+                  Expanded(
+                    child: Text(
+                      currentUrl != null ? _getTitleFromPath(currentUrl) : 'No song selected',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  // 재생/일시정지 버튼
+                  IconButton(
+                    icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+                    onPressed: () async {
+                      if (isPlaying) {
+                        await widget.audioManager.player.pause();
+                      } else {
+                        await widget.audioManager.player.play();
+                      }
+                    },
+                  ),
+                  // 타이머 버튼
+                  // 호출 시 기존 설정된 시간을 전달
+                  IconButton(
+                    icon: const Icon(Icons.timer),
+                    onPressed: () {
+                      _showTimerDialog(context, widget.audioManager, initialHours: previouslySetHours, initialMinutes: previouslySetMinutes);
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -291,10 +307,11 @@ class _MusicControlBarState extends State<MusicControlBar> {
                   onPressed: () {
                     Navigator.of(context).pop();
 
-                    // 이전에 설정한 값을 저장
+                    // 이전에 설정한 시간을 저장하고 화면에 표시할 텍스트 업데이트
                     setState(() {
                       previouslySetHours = selectedHours;
                       previouslySetMinutes = selectedMinutes;
+                      displayedTimer = "${selectedHours}h ${selectedMinutes}m"; // 업데이트된 시간 반영
                     });
 
                     _startTimer(audioManager, selectedHours, selectedMinutes);
