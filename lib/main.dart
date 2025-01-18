@@ -170,11 +170,18 @@ class MusicControlBar extends StatefulWidget {
 class _MusicControlBarState extends State<MusicControlBar> {
   int previouslySetHours = 0; // 이전에 설정된 시간
   int previouslySetMinutes = 5; // 이전에 설정된 분
-
   String displayedTimer = "No timer set"; // 초기값
 
   @override
+  void initState() {
+    super.initState(); // 부모 클래스의 initState 호출
+    displayedTimer = "No timer set"; // 초기 상태 설정
+  }
+
+  @override
   Widget build(BuildContext context) {
+
+    print("build() 호출됨: Timer - $displayedTimer");
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -241,86 +248,78 @@ class _MusicControlBarState extends State<MusicControlBar> {
   }
 
   void _showTimerDialog(BuildContext context, AudioManager audioManager, {int initialHours = 0, int initialMinutes = 5}) {
-    int selectedHours = initialHours; // 초기 시간 값을 매개변수로 받음
+    int selectedHours = initialHours;
     int selectedMinutes = initialMinutes;
 
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Set Timer'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+        return AlertDialog(
+          title: const Text('Set Timer'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Hours:'),
-                      DropdownButton<int>(
-                        value: selectedHours, // 선택된 시간 표시
-                        items: List.generate(13, (index) => index).map((int value) {
-                          return DropdownMenuItem<int>(
-                            value: value,
-                            child: Text('$value'),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedHours = value!;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Minutes:'),
-                      DropdownButton<int>(
-                        value: selectedMinutes, // 선택된 분 표시
-                        items: List.generate(60, (index) => index).map((int value) {
-                          return DropdownMenuItem<int>(
-                            value: value,
-                            child: Text('$value'),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedMinutes = value!;
-                          });
-                        },
-                      ),
-                    ],
+                  const Text('Hours:'),
+                  DropdownButton<int>(
+                    value: selectedHours,
+                    items: List.generate(13, (index) => index)
+                        .map((int value) => DropdownMenuItem<int>(
+                      value: value,
+                      child: Text('$value'),
+                    ))
+                        .toList(),
+                    onChanged: (value) {
+                      selectedHours = value!;
+                    },
                   ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Minutes:'),
+                  DropdownButton<int>(
+                    value: selectedMinutes,
+                    items: List.generate(60, (index) => index)
+                        .map((int value) => DropdownMenuItem<int>(
+                      value: value,
+                      child: Text('$value'),
+                    ))
+                        .toList(),
+                    onChanged: (value) {
+                      selectedMinutes = value!;
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // 부모 상태 업데이트
+                setState(() {
+                  previouslySetHours = selectedHours;
+                  previouslySetMinutes = selectedMinutes;
+                  displayedTimer = "${selectedHours}h ${selectedMinutes}m";
+                });
 
-                    // 이전에 설정한 시간을 저장하고 화면에 표시할 텍스트 업데이트
-                    setState(() {
-                      previouslySetHours = selectedHours;
-                      previouslySetMinutes = selectedMinutes;
-                      displayedTimer = "${selectedHours}h ${selectedMinutes}m"; // 업데이트된 시간 반영
-                    });
+                Navigator.of(context).pop();
 
-                    _startTimer(audioManager, selectedHours, selectedMinutes);
-                  },
-                  child: const Text('Set'),
-                ),
-              ],
-            );
-          },
+                print("Selected Timer: $displayedTimer");
+              },
+              child: const Text('Set'),
+            ),
+          ],
         );
       },
     );
