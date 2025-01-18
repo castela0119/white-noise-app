@@ -227,38 +227,41 @@ class _MusicControlBarState extends State<MusicControlBar> {
         : "No timer set";
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel(); // 타이머 정리
-    super.dispose();
-  }
-
-  void _startTimer() {
+  // 추가: _startTimerWithRepeat 메서드
+  void _startTimerWithRepeat() {
     if (remainingTime <= Duration.zero) return;
 
     setState(() {
       isTimerRunning = true;
     });
 
+    // 반복 재생 설정
+    widget.audioManager.player.setLoopMode(LoopMode.one);
+
+    // 타이머 시작
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (remainingTime > Duration.zero) {
-        setState(() {
+      setState(() {
+        if (remainingTime > Duration.zero) {
           remainingTime -= const Duration(seconds: 1);
           displayedTimer =
           "${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m ${remainingTime.inSeconds.remainder(60)}s";
-
-          // 디버깅: 값 확인
-          print("Timer updated: $displayedTimer");
-        });
-      } else {
-        timer.cancel();
-        setState(() {
+        } else {
+          timer.cancel();
           displayedTimer = "Time's up!";
           isTimerRunning = false;
-        });
-        widget.audioManager.stop();
-      }
+
+          // 타이머 종료 시 재생 중단
+          widget.audioManager.stop();
+          widget.audioManager.player.setLoopMode(LoopMode.off);
+        }
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // 타이머 정리
+    super.dispose();
   }
 
   void _stopTimer() {
@@ -317,16 +320,12 @@ class _MusicControlBarState extends State<MusicControlBar> {
                         _stopTimer();
                       } else {
                         if (widget.audioManager.currentUrl == null) {
-                          // MP3 재생을 비동기적으로 실행
                           widget.audioManager.playAsset('asset/sounds/rain_for_sleep_10min.mp3');
                         } else {
                           widget.audioManager.player.play();
                         }
-
-                        // 타이머 시작
-                        _startTimer();
+                        _startTimerWithRepeat(); // 새로운 타이머 호출
                       }
-                      // UI 갱신
                       setState(() {});
                     },
                   ),
