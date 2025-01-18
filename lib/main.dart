@@ -91,7 +91,7 @@ class MusicPlayerScreen extends StatelessWidget {
           ),
           MusicItem(
             title: 'Fan Sleep Sound',
-            assetPath: 'asset/sounds/fan_sleep_sounds_10min', // Asset 경로
+            assetPath: 'asset/sounds/fan_sleep_sounds_10min.mp3', // Asset 경로
             audioManager: audioManager,
           ),
           MusicItem(
@@ -102,6 +102,11 @@ class MusicPlayerScreen extends StatelessWidget {
           MusicItem(
             title: 'Baby Sleep',
             assetPath: 'asset/sounds/baby_sleep_white_noise_10min.mp3', // Asset 경로
+            audioManager: audioManager,
+          ),
+          MusicItem(
+            title: 'Campfire Sound',
+            assetPath: 'asset/sounds/campfire_sounds_10min.mp3', // Asset 경로
             audioManager: audioManager,
           ),
         ],
@@ -133,6 +138,7 @@ class MusicItem extends StatelessWidget {
         final isPlaying = audioManager.currentUrl == assetPath && playerState?.playing == true;
 
         return ListTile(
+          leading: const Icon(Icons.music_note, color: Colors.blue),
           title: Text(title),
           trailing: IconButton(
             icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
