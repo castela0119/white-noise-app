@@ -46,7 +46,6 @@ class AudioManager {
   String? get currentUrl => _currentUrl; // 현재 재생 중인 URL 반환
 }
 
-
 // 음악 플레이어 화면
 class MusicPlayerScreen extends StatelessWidget {
   const MusicPlayerScreen({super.key});
@@ -61,56 +60,57 @@ class MusicPlayerScreen extends StatelessWidget {
         children: [
           MusicItem(
             title: 'Rain for Sleep',
-            assetPath: 'asset/sounds/rain_for_sleep_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/rain_for_sleep_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
             title: 'Rain for Thunderstorm',
-            assetPath: 'asset/sounds/sounds_of_rain_thunderstorm_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/sounds_of_rain_thunderstorm_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
             title: 'Rainstorm on Tropical Canopy',
-            assetPath: 'asset/sounds/rainstorm_on_tropical_canopy_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/rainstorm_on_tropical_canopy_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
             title: 'Ocean Waves on Rocky Shores',
-            assetPath: 'asset/sounds/ocean_waves_on_rocky_shores_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/ocean_waves_on_rocky_shores_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
             title: 'Stream Sounds for Sleep',
-            assetPath: 'asset/sounds/stream_sounds_for_sleep_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/stream_sounds_for_sleep_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
-            title: 'Scenic Lack and Mountains',
-            assetPath: 'asset/sounds/scenic_lake_and_mountains_10min.mp3', // Asset 경로
+            title: 'Scenic Lake and Mountains',
+            assetPath: 'asset/sounds/scenic_lake_and_mountains_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
             title: 'Fan Sleep Sound',
-            assetPath: 'asset/sounds/fan_sleep_sounds_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/fan_sleep_sounds_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
             title: 'Humidifier Fan Sound',
-            assetPath: 'asset/sounds/humidifier_fan_noise_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/humidifier_fan_noise_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
             title: 'Baby Sleep',
-            assetPath: 'asset/sounds/baby_sleep_white_noise_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/baby_sleep_white_noise_10min.mp3',
             audioManager: audioManager,
           ),
           MusicItem(
             title: 'Campfire Sound',
-            assetPath: 'asset/sounds/campfire_sounds_10min.mp3', // Asset 경로
+            assetPath: 'asset/sounds/campfire_sounds_10min.mp3',
             audioManager: audioManager,
           ),
         ],
       ),
+      bottomNavigationBar: MusicControlBar(audioManager: audioManager),
     );
   }
 }
@@ -135,7 +135,8 @@ class MusicItem extends StatelessWidget {
         final playerState = snapshot.data;
 
         // 현재 곡이 재생 중인지 판별
-        final isPlaying = audioManager.currentUrl == assetPath && playerState?.playing == true;
+        final isPlaying =
+            audioManager.currentUrl == assetPath && playerState?.playing == true;
 
         return ListTile(
           leading: const Icon(Icons.music_note, color: Colors.blue),
@@ -157,30 +158,108 @@ class MusicItem extends StatelessWidget {
   }
 }
 
-// 재생/정지 버튼 위젯
-class ControlButtons extends StatelessWidget {
-  final AudioPlayer player;
+class MusicControlBar extends StatelessWidget {
+  final AudioManager audioManager;
 
-  const ControlButtons(this.player, {Key? key}) : super(key: key);
+  const MusicControlBar({super.key, required this.audioManager});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<PlayerState>(
-      stream: player.playerStateStream,
-      builder: (context, snapshot) {
-        final playerState = snapshot.data;
+    return Container(
+      color: Colors.grey[200],
+      padding: const EdgeInsets.all(8.0),
+      child: StreamBuilder<PlayerState>(
+        stream: audioManager.player.playerStateStream,
+        builder: (context, snapshot) {
+          final playerState = snapshot.data;
+          final isPlaying = playerState?.playing ?? false;
+          final currentUrl = audioManager.currentUrl;
 
-        if (playerState == null ||
-            playerState.processingState == ProcessingState.loading) {
-          return const CircularProgressIndicator();
-        }
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 현재 재생 곡 정보
+              Expanded(
+                child: Text(
+                  currentUrl != null ? _getTitleFromPath(currentUrl) : 'No song playing',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // 재생/일시정지 버튼
+              IconButton(
+                icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+                onPressed: () async {
+                  if (isPlaying) {
+                    await audioManager.player.pause();
+                  } else {
+                    await audioManager.player.play();
+                  }
+                },
+              ),
+              // 타이머 버튼
+              IconButton(
+                icon: const Icon(Icons.timer),
+                onPressed: () {
+                  _showTimerDialog(context, audioManager);
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
-        final playing = playerState.playing;
-        return IconButton(
-          icon: Icon(playing ? Icons.pause : Icons.play_arrow),
-          onPressed: playing ? player.pause : player.play,
+  String _getTitleFromPath(String path) {
+    return path.split('/').last.replaceAll('_', ' ').replaceAll('.mp3', '');
+  }
+
+  void _showTimerDialog(BuildContext context, AudioManager audioManager) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        int selectedMinutes = 5; // 기본 타이머 시간
+
+        return AlertDialog(
+          title: const Text('Set Timer'),
+          content: DropdownButton<int>(
+            value: selectedMinutes,
+            items: [5, 10, 15, 20, 30].map((int value) {
+              return DropdownMenuItem<int>(
+                value: value,
+                child: Text('$value minutes'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              selectedMinutes = value!;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _startTimer(audioManager, selectedMinutes);
+              },
+              child: const Text('Set'),
+            ),
+          ],
         );
       },
     );
+  }
+
+  void _startTimer(AudioManager audioManager, int minutes) {
+    Future.delayed(Duration(minutes: minutes), () async {
+      if (audioManager.player.playing) {
+        await audioManager.player.stop();
+      }
+    });
   }
 }
