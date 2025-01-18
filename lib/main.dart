@@ -210,20 +210,29 @@ class _MusicControlBarState extends State<MusicControlBar> {
                   // 현재 재생 곡 정보
                   Expanded(
                     child: Text(
-                      currentUrl != null ? _getTitleFromPath(currentUrl) : 'No song selected',
+                      currentUrl != null
+                          ? _getTitleFromPath(currentUrl) // 현재 재생 곡의 제목 표시
+                          : 'No song selected',          // 기본 메시지
                       style: const TextStyle(fontWeight: FontWeight.bold),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+
                   // 재생/일시정지 버튼
                   IconButton(
                     icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
                     onPressed: () async {
                       if (isPlaying) {
-                        await widget.audioManager.player.pause();
+                        await widget.audioManager.player.pause(); // 재생 중인 곡을 일시정지
                       } else {
-                        await widget.audioManager.player.play();
+                        // currentUrl이 없을 경우 첫 번째 곡 재생
+                        if (widget.audioManager.currentUrl == null) {
+                          await widget.audioManager.playAsset('asset/sounds/rain_for_sleep_10min.mp3');
+                        } else {
+                          await widget.audioManager.player.play(); // 이전에 설정된 곡 재생
+                        }
                       }
+                      setState(() {}); // 상태 갱신
                     },
                   ),
                   // 타이머 버튼
