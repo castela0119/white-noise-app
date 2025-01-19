@@ -1,119 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'dart:async';
 
 import 'package:pure_noise_test/services/audio_manager.dart';
+import 'package:pure_noise_test/services/timer_manager.dart';
 import 'package:pure_noise_test/widgets/timer_dialog.dart'; // 분리된 타이머 다이얼로그 import
 
-class MusicControlBar extends StatefulWidget {
+class MusicControlBar extends StatelessWidget {
   final AudioManager audioManager;
-  final int initialHours; // 초기 시간
-  final int initialMinutes; // 초기 분
-  final String displayedTimer; // 표시할 타이머 문자열
-  final Function(int hours, int minutes) onTimerSet; // 상태 업데이트 콜백
+  final TimerManager timerManager; // TimerManager 추가
 
   const MusicControlBar({
     super.key,
     required this.audioManager,
-    required this.initialHours,
-    required this.initialMinutes,
-    required this.displayedTimer,
-    required this.onTimerSet,
+    required this.timerManager,
   });
-
-  @override
-  State<MusicControlBar> createState() => _MusicControlBarState();
-}
-
-class _MusicControlBarState extends State<MusicControlBar> {
-  late Duration remainingTime;
-  Timer? _timer;
-  bool isTimerRunning = false;
-
-  int previouslySetHours = 0; // 이전에 설정된 시간
-  int previouslySetMinutes = 5; // 이전에 설정된 분
-  String displayedTimer = "No timer set"; // 초기값
-
-  @override
-  void initState() {
-    super.initState();
-    remainingTime = Duration(
-      hours: widget.initialHours,
-      minutes: widget.initialMinutes,
-    );
-    displayedTimer = remainingTime.inMinutes > 0
-        ? "${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m"
-        : "No timer set";
-  }
-
-  void _startTimerWithRepeat() {
-    if (remainingTime <= Duration.zero) return;
-
-    setState(() {
-      isTimerRunning = true;
-    });
-
-    widget.audioManager.player.setLoopMode(LoopMode.one);
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (remainingTime > Duration.zero) {
-          remainingTime -= const Duration(seconds: 1);
-          displayedTimer =
-          "${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m ${remainingTime.inSeconds.remainder(60)}s";
-        } else {
-          timer.cancel();
-          displayedTimer = "Time's up!";
-          isTimerRunning = false;
-
-          widget.audioManager.stop();
-          widget.audioManager.player.setLoopMode(LoopMode.off);
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _stopTimer() {
-    if (_timer != null && _timer!.isActive) {
-      _timer?.cancel();
-      setState(() {
-        isTimerRunning = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (displayedTimer.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              "Timer: $displayedTimer",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
+        // 타이머 상태 표시
+        ValueListenableBuilder<Duration>(
+          valueListenable: timerManager.remainingTimeNotifier, // TimerManager의 상태 리스너
+          builder: (context, remainingTime, child) {
+            final isTimerRunning = timerManager.isTimerRunning;
+            final displayedTimer = remainingTime.inSeconds > 0
+                ? "${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m ${remainingTime.inSeconds.remainder(60)}s"
+                : "No timer set";
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                "Timer: $displayedTimer",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            );
+          },
+        ),
         Container(
           color: Colors.grey[200],
           padding: const EdgeInsets.all(8.0),
           child: StreamBuilder<PlayerState>(
-            stream: widget.audioManager.player.playerStateStream,
+            stream: audioManager.player.playerStateStream,
             builder: (context, snapshot) {
               final playerState = snapshot.data;
               final isPlaying = playerState?.playing ?? false;
-              final currentUrl = widget.audioManager.currentUrl;
+              final currentUrl = audioManager.currentUrl;
 
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // 현재 재생 곡 정보
                   Expanded(
                     child: Text(
                       currentUrl != null
@@ -123,24 +61,25 @@ class _MusicControlBarState extends State<MusicControlBar> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  // 재생/일시정지 버튼
                   IconButton(
                     icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
                     onPressed: () async {
                       if (isPlaying) {
-                        await widget.audioManager.player.pause();
-                        _stopTimer();
+                        await audioManager.player.pause();
+                        timerManager.stopTimer(); // 타이머 정지
                       } else {
-                        if (widget.audioManager.currentUrl == null) {
-                          widget.audioManager.playAsset(
+                        if (audioManager.currentUrl == null) {
+                          audioManager.playAsset(
                               'asset/sounds/rain_for_sleep_10min.mp3');
                         } else {
-                          widget.audioManager.player.play();
+                          audioManager.player.play();
                         }
-                        _startTimerWithRepeat();
+                        timerManager.startTimer(); // 타이머 시작
                       }
-                      setState(() {});
                     },
                   ),
+                  // 타이머 설정 버튼
                   IconButton(
                     icon: const Icon(Icons.timer),
                     onPressed: () {
@@ -165,16 +104,11 @@ class _MusicControlBarState extends State<MusicControlBar> {
       context: context,
       builder: (context) {
         return TimerDialog(
-          initialHours: previouslySetHours,
-          initialMinutes: previouslySetMinutes,
+          initialHours: timerManager.remainingTimeNotifier.value.inHours,
+          initialMinutes: timerManager.remainingTimeNotifier.value.inMinutes.remainder(60),
           onTimerSet: (hours, minutes) {
-            setState(() {
-              previouslySetHours = hours;
-              previouslySetMinutes = minutes;
-              remainingTime = Duration(hours: hours, minutes: minutes);
-              displayedTimer =
-              "${remainingTime.inHours}h ${remainingTime.inMinutes.remainder(60)}m";
-            });
+            final newTime = Duration(hours: hours, minutes: minutes);
+            timerManager.resetTimer(newTime); // TimerManager에 새로운 시간 설정
           },
         );
       },
