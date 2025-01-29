@@ -36,7 +36,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
     final audioManager = AudioManager();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('White Noise For 10min')),
+      appBar: AppBar(title: const Text('Pure Noise')),
       body: ListView(
         children: [
           MusicItem(

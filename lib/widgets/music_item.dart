@@ -35,9 +35,11 @@ class MusicItem extends StatelessWidget {
               if (isPlaying) {
                 audioManager.player.pause();
                 timerManager.stopTimer(); // 타이머 정지
+                print("============ stopTimer ============");
               } else {
-                audioManager.playAsset(assetPath);
+                audioManager.playAsset(assetPath, title);
                 timerManager.startTimer(); // 타이머 시작
+                print("============ startTimer ============");
               }
             },
           ),

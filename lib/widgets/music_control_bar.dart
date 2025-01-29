@@ -51,14 +51,17 @@ class MusicControlBar extends StatelessWidget {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // 현재 재생 곡 정보
+                  // 🔥 현재 재생 중인 곡 제목 표시 (ValueListenableBuilder 사용)
                   Expanded(
-                    child: Text(
-                      currentUrl != null
-                          ? _getTitleFromPath(currentUrl)
-                          : 'No song selected',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
+                    child: ValueListenableBuilder<String?>(
+                      valueListenable: audioManager.currentTitleNotifier,
+                      builder: (context, title, child) {
+                        return Text(
+                          title ?? 'No song selected',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
                     ),
                   ),
                   // 재생/일시정지 버튼
@@ -71,7 +74,7 @@ class MusicControlBar extends StatelessWidget {
                       } else {
                         if (audioManager.currentUrl == null) {
                           audioManager.playAsset(
-                              'asset/sounds/rain_for_sleep_10min.mp3');
+                              'asset/sounds/rain_for_sleep_10min.mp3', 'Rain for Sleep');
                         } else {
                           audioManager.player.play();
                         }
