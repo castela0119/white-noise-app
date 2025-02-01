@@ -18,9 +18,9 @@
 ## 2. 스크린샷
 
 <div style="display: flex; gap: 10px;">
-  <img src="asset/images/Screenshot_1.jpg" alt="Screenshot 1" width="300" />
-  <img src="asset/images/Screenshot_2.jpg" alt="Screenshot 2" width="300" />
-  <img src="asset/images/Screenshot_3.jpg" alt="Screenshot 3" width="300" />
+  <img src="asset/images/Screenshot_1.jpg" alt="Screenshot 1" width="260" />
+  <img src="asset/images/Screenshot_2.jpg" alt="Screenshot 2" width="260" />
+  <img src="asset/images/Screenshot_3.jpg" alt="Screenshot 3" width="260" />
 </div>
 
 ---
