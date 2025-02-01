@@ -4,7 +4,8 @@
 앱의 소개 및 주요 기능에 대해 아래 영상을 참고해 주세요.
 
 
-[![앱 소개 영상](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
+[앱 플레이 영상 링크](https://youtube.com/shorts/glZu6V1La4U?si=CzI73Do-NoWpV1b3)
+
 
 ---
 
